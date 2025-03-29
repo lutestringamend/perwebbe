@@ -1,1 +1,20 @@
+# Environment files
+*.env
 .env
+app.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Go specific
+/vendor/
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
