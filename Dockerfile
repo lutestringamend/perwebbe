@@ -1,10 +1,22 @@
-FROM golang:1.23-bookworm
+FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
+COPY go.mod go.sum ./
+
+RUN go mod download
+
 COPY . .
 
-RUN go get
-RUN go build -o bin .
+RUN CGO_ENABLED=0 GOOS=linux go build -o main .
 
-ENTRYPOINT [ "/app/bin" ]
+FROM alpine:latest
+
+WORKDIR /app
+
+COPY --from=builder /app/main .
+COPY app.env .
+
+EXPOSE 8080
+
+CMD ["./main"]
