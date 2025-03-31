@@ -75,10 +75,10 @@ func main() {
 	{
 		authRoutes := api.Group("/auth")
 		{
-			authRoutes.POST("/register", authHandler.Register)
+			//authRoutes.POST("/register", authHandler.Register)
 			authRoutes.POST("/login", authHandler.Login)
 			authRoutes.POST("/refresh", authHandler.RefreshToken)
-			authRoutes.POST("/me", jwtAuth, authHandler.GetMe)
+			authRoutes.GET("/me", jwtAuth, authHandler.GetMe)
 		}
 
 		blogRoutes := api.Group("/blogs")

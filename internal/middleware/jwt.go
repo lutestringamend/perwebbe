@@ -57,7 +57,7 @@ func JWTAuthMiddleware(jwtConfig config.JWTConfig) gin.HandlerFunc {
 
 func GenerateJWT(userID uint, username string, role string, jwtConfig config.JWTConfig) (string, error) {
 	claims := jwt.MapClaims{
-		"sub":      fmt.Sprint("%d", userID),
+		"sub":      fmt.Sprintf("%d", userID),
 		"username": username,
 		"role":     role,
 		"iss":      jwtConfig.Issuer,
