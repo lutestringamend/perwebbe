@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/lutestringamend/perwebbe/internal/model"
 	"github.com/lutestringamend/perwebbe/pkg/paging"
 	"gorm.io/gorm"
@@ -34,4 +35,12 @@ type ContactService interface {
 	MarkContactAsRead(id uint) error
 	DeleteContact(id uint) error
 	GetBlogBaseQuery() *gorm.DB
+}
+
+// AuthService defines methods for auth service
+type AuthService interface {
+	Register(username, email, password string) (*model.User, error)
+	Login(email, password string) (*model.AuthResponse, error)
+	RefreshToken(refreshToken string) (*model.AuthResponse, error)
+	ValidateToken(tokenString string) (jwt.MapClaims, error)
 }

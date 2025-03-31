@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lutestringamend/perwebbe/internal/config"
 	"github.com/lutestringamend/perwebbe/internal/handler"
+	"github.com/lutestringamend/perwebbe/internal/middleware"
 	"github.com/lutestringamend/perwebbe/internal/repository"
 	"github.com/lutestringamend/perwebbe/internal/service"
 )
@@ -16,6 +17,11 @@ func main() {
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
+	}
+
+	jwtConfig, err := config.LoadJWTConfig()
+	if err != nil {
+		log.Fatalf("failed to load JWT config: %v", err)
 	}
 
 	db, err := config.SetupDatabase(cfg)
@@ -35,14 +41,17 @@ func main() {
 	blogRepo := repository.NewBlogRepository(db)
 	portfolioRepo := repository.NewPortfolioRepository(db)
 	contactRepo := repository.NewContactRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
 	blogService := service.NewBlogService(blogRepo)
 	portfolioService := service.NewPortfolioService(portfolioRepo)
 	contactService := service.NewContactService(contactRepo)
+	authService := service.NewAuthService(userRepo, jwtConfig)
 
 	blogHandler := handler.NewBlogHandler(blogService)
 	portfolioHandler := handler.NewPortfolioHandler(portfolioService)
 	contactHandler := handler.NewContactHandler(contactService)
+	authHandler := handler.NewAuthHandler(authService)
 
 	router := gin.Default()
 
@@ -60,32 +69,42 @@ func main() {
 		c.Next()
 	})
 
+	jwtAuth := middleware.JWTAuthMiddleware(jwtConfig)
+
 	api := router.Group("/api")
 	{
+		authRoutes := api.Group("/auth")
+		{
+			authRoutes.POST("/register", authHandler.Register)
+			authRoutes.POST("/login", authHandler.Login)
+			authRoutes.POST("/refresh", authHandler.RefreshToken)
+			authRoutes.POST("/me", jwtAuth, authHandler.GetMe)
+		}
+
 		blogRoutes := api.Group("/blogs")
 		{
 			blogRoutes.GET("/", blogHandler.GetAllBlogs)
 			blogRoutes.GET("/:slug", blogHandler.GetBlogBySlug)
-			blogRoutes.POST("/", blogHandler.CreateBlog)
-			blogRoutes.PUT("/:id", blogHandler.UpdateBlog)
-			blogRoutes.DELETE("/:id", blogHandler.DeleteBlog)
+			blogRoutes.POST("/", jwtAuth, blogHandler.CreateBlog)
+			blogRoutes.PUT("/:id", jwtAuth, blogHandler.UpdateBlog)
+			blogRoutes.DELETE("/:id", jwtAuth, blogHandler.DeleteBlog)
 		}
 
 		portfolioRoutes := api.Group("/portfolio")
 		{
 			portfolioRoutes.GET("/", portfolioHandler.GetAllProjects)
 			portfolioRoutes.GET("/:id", portfolioHandler.GetProject)
-			portfolioRoutes.POST("/", portfolioHandler.CreateProject)
-			portfolioRoutes.PUT("/:id", portfolioHandler.UpdateProject)
-			portfolioRoutes.DELETE("/:id", portfolioHandler.DeleteProject)
+			portfolioRoutes.POST("/", jwtAuth, portfolioHandler.CreateProject)
+			portfolioRoutes.PUT("/:id", jwtAuth, portfolioHandler.UpdateProject)
+			portfolioRoutes.DELETE("/:id", jwtAuth, portfolioHandler.DeleteProject)
 		}
 
 		contactRoutes := api.Group("/contacts")
 		{
-			contactRoutes.GET("/", contactHandler.GetAllContacts)
 			contactRoutes.POST("/", contactHandler.CreateContact)
-			contactRoutes.PUT("/:id/read", contactHandler.MarkContactAsRead)
-			contactRoutes.DELETE("/:id", contactHandler.DeleteContact)
+			contactRoutes.GET("/", jwtAuth, contactHandler.GetAllContacts)
+			contactRoutes.PUT("/:id/read", jwtAuth, contactHandler.MarkContactAsRead)
+			contactRoutes.DELETE("/:id", jwtAuth, contactHandler.DeleteContact)
 		}
 	}
 

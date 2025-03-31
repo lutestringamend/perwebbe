@@ -35,3 +35,13 @@ type ContactRepository interface {
 	Delete(id uint) error
 	GetBaseQuery() *gorm.DB
 }
+
+// UserRepository defines methods for user repository
+type UserRepository interface {
+	Create(user *model.User) error
+	GetByID(id uint) (*model.User, error)
+	GetByUsername(username string) (*model.User, error)
+	GetByEmail(email string) (*model.User, error)
+	Update(user *model.User) error
+	Delete(id uint) error
+}

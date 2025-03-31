@@ -108,3 +108,27 @@ FOR EACH ROW EXECUTE PROCEDURE update_timestamp();
 CREATE TRIGGER update_contact_submissions_timestamp
 BEFORE UPDATE ON contact_submissions
 FOR EACH ROW EXECUTE PROCEDURE update_timestamp();
+
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'user',
+    active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT users_username_unique UNIQUE (username),
+    CONSTRAINT users_email_unique UNIQUE (email)
+);
+
+-- Create index for username and email
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- Create updated_at trigger for users
+CREATE TRIGGER update_users_timestamp
+BEFORE UPDATE ON users
+FOR EACH ROW EXECUTE PROCEDURE update_timestamp();
