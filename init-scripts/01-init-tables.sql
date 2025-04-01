@@ -1,14 +1,39 @@
 -- Create extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Create updated_at function
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Drop tables if they exist (for clean setup)
 DROP TABLE IF EXISTS blog_tags;
 DROP TABLE IF EXISTS contact_submissions;
 DROP TABLE IF EXISTS portfolio_projects;
 DROP TABLE IF EXISTS blog_posts;
 DROP TABLE IF EXISTS tags;
+DROP TABLE IF EXISTS users;
 
 -- Create tables with proper timestamps and constraints
+
+-- Users table
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'user',
+    active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT users_username_unique UNIQUE (username),
+    CONSTRAINT users_email_unique UNIQUE (email)
+);
 
 -- Tags table
 CREATE TABLE tags (
@@ -82,17 +107,10 @@ CREATE INDEX idx_blog_posts_published ON blog_posts(published);
 CREATE INDEX idx_portfolio_projects_type ON portfolio_projects(project_type);
 CREATE INDEX idx_portfolio_projects_featured ON portfolio_projects(featured);
 CREATE INDEX idx_contact_submissions_read ON contact_submissions(read);
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_email ON users(email);
 
--- Create updated_at triggers
-CREATE OR REPLACE FUNCTION update_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = CURRENT_TIMESTAMP;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Apply trigger to all tables
+-- Apply triggers to all tables
 CREATE TRIGGER update_blog_posts_timestamp
 BEFORE UPDATE ON blog_posts
 FOR EACH ROW EXECUTE PROCEDURE update_timestamp();
@@ -109,26 +127,6 @@ CREATE TRIGGER update_contact_submissions_timestamp
 BEFORE UPDATE ON contact_submissions
 FOR EACH ROW EXECUTE PROCEDURE update_timestamp();
 
--- Create users table
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) DEFAULT 'user',
-    active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP WITH TIME ZONE,
-    CONSTRAINT users_username_unique UNIQUE (username),
-    CONSTRAINT users_email_unique UNIQUE (email)
-);
-
--- Create index for username and email
-CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-
--- Create updated_at trigger for users
 CREATE TRIGGER update_users_timestamp
 BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE PROCEDURE update_timestamp();
